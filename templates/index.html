@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>URLSentry — Phishing &amp; Malicious URL Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0A0E13;
+    --panel: #10161D;
+    --panel-2: #151D26;
+    --line: #223041;
+    --text: #E7EEF4;
+    --text-dim: #8CA0B3;
+    --cyan: #4FD1C5;
+    --red: #FF5C5C;
+    --amber: #FFB454;
+    --green: #5CE68C;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(79,209,197,0.06), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(255,92,92,0.05), transparent 45%);
+  }
+
+  .scanline{
+    position: fixed;
+    top:0; left:0; right:0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.5;
+    animation: sweep 5s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes sweep{
+    0%{ transform: translateY(0); opacity:0; }
+    5%{ opacity:0.5; }
+    95%{ opacity:0.5; }
+    100%{ transform: translateY(100vh); opacity:0; }
+  }
+
+  header{
+    padding: 28px 32px 18px;
+    border-bottom: 1px solid var(--line);
+    display:flex; align-items:baseline; justify-content:space-between;
+    max-width: 880px; margin: 0 auto;
+  }
+  .brand{ display:flex; align-items:center; gap: 10px; }
+  .brand-mark{
+    width: 28px; height: 28px;
+    border: 2px solid var(--cyan);
+    border-radius: 50%;
+    position: relative;
+    flex-shrink:0;
+  }
+  .brand-mark::after{
+    content:"";
+    position:absolute; top:50%; left:50%;
+    width: 2px; height: 10px;
+    background: var(--cyan);
+    transform-origin: bottom center;
+    transform: translate(-50%,-100%) rotate(35deg);
+  }
+  .brand-name{
+    font-family:'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: 0.5px;
+  }
+  .brand-name span{ color: var(--cyan); }
+  .tagline{ color: var(--text-dim); font-size: 13px; font-family:'JetBrains Mono', monospace; }
+
+  main{ max-width: 880px; margin: 0 auto; padding: 40px 32px 80px; }
+
+  .lede{
+    font-size: 15px;
+    color: var(--text-dim);
+    max-width: 560px;
+    line-height: 1.6;
+    margin-bottom: 28px;
+  }
+
+  form{
+    display:flex;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 6px;
+  }
+  form input[type=text]{
+    flex:1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    padding: 12px 14px;
+  }
+  form input::placeholder{ color: #4C5C6D; }
+  form button{
+    background: var(--cyan);
+    color: #05201D;
+    border: none;
+    border-radius: 6px;
+    padding: 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  form button:hover{ box-shadow: 0 0 0 3px rgba(79,209,197,0.2); }
+  form button:active{ transform: scale(0.97); }
+
+  .error{
+    margin-top: 14px;
+    color: var(--red);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+
+  /* ---- Results ---- */
+  .result{
+    margin-top: 36px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--panel);
+    overflow: hidden;
+  }
+  .result-head{
+    display:flex;
+    align-items:center;
+    gap: 24px;
+    padding: 24px 26px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel-2);
+  }
+
+  .gauge{
+    width: 88px; height: 88px;
+    border-radius: 50%;
+    flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    position: relative;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .gauge svg{ position:absolute; inset:0; transform: rotate(-90deg); }
+  .gauge-score{ font-size: 22px; font-weight: 800; z-index:1; }
+  .gauge-max{ font-size: 10px; color: var(--text-dim); z-index:1; margin-top: -2px;}
+
+  .result-meta{ flex:1; min-width:0; }
+  .verdict{
+    font-family:'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 0.3px;
+    margin: 0 0 6px;
+  }
+  .scanned-url{
+    color: var(--text-dim);
+    font-size: 13px;
+    font-family:'JetBrains Mono', monospace;
+    word-break: break-all;
+  }
+
+  .findings{ padding: 6px 0; }
+  .finding{
+    display:flex; gap: 14px;
+    padding: 16px 26px;
+    border-bottom: 1px solid var(--line);
+  }
+  .finding:last-child{ border-bottom:none; }
+  .finding-weight{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--amber);
+    flex-shrink:0;
+    width: 40px;
+    padding-top: 2px;
+  }
+  .finding-body{ flex:1; }
+  .finding-rule{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--cyan);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .finding-desc{ font-size: 14px; color: var(--text); line-height: 1.5; }
+
+  .clean{
+    padding: 22px 26px;
+    color: var(--green);
+    font-family:'JetBrains Mono', monospace;
+    font-size: 14px;
+  }
+
+  footer{
+    max-width: 880px; margin: 0 auto;
+    padding: 24px 32px 60px;
+    color: var(--text-dim);
+    font-size: 12px;
+    font-family:'JetBrains Mono', monospace;
+    border-top: 1px solid var(--line);
+  }
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <div class="brand-name">URL<span>Sentry</span></div>
+  </div>
+  <div class="tagline">// heuristic phishing &amp; malicious url scanner</div>
+</header>
+
+<main>
+  <p class="lede">
+    Paste a URL below to check it against 15 phishing indicators — typosquatting, IP-based hosts,
+    punycode homographs, brand impersonation, suspicious TLDs, and more. Runs fully offline;
+    no data leaves this scan.
+  </p>
+
+  <form action="/scan" method="POST">
+    <input type="text" name="url" placeholder="https://example.com/login" autocomplete="off"
+           value="{{ result.url if result else '' }}" required>
+    <button type="submit">SCAN</button>
+  </form>
+
+  {% if error %}
+  <div class="error">⚠ {{ error }}</div>
+  {% endif %}
+
+  {% if result %}
+  {% set pct = result.score %}
+  {% set color = '#FF5C5C' if pct >= 60 else ('#FFB454' if pct >= 30 else ('#5CE68C' if pct > 0 else '#4FD1C5')) %}
+  <div class="result">
+    <div class="result-head">
+      <div class="gauge">
+        <svg viewBox="0 0 88 88">
+          <circle cx="44" cy="44" r="38" fill="none" stroke="#223041" stroke-width="8"/>
+          <circle cx="44" cy="44" r="38" fill="none" stroke="{{ color }}" stroke-width="8"
+                  stroke-dasharray="{{ (pct/100*238.76)|round(1) }} 238.76" stroke-linecap="round"/>
+        </svg>
+        <div style="text-align:center;">
+          <div class="gauge-score" style="color: {{ color }};">{{ result.score }}</div>
+          <div class="gauge-max">/ 100</div>
+        </div>
+      </div>
+      <div class="result-meta">
+        <p class="verdict" style="color: {{ color }};">{{ result.verdict }}</p>
+        <p class="scanned-url">{{ result.normalized_url }}</p>
+      </div>
+    </div>
+
+    {% if result.findings %}
+    <div class="findings">
+      {% for f in result.findings %}
+      <div class="finding">
+        <div class="finding-weight">+{{ f.weight }}</div>
+        <div class="finding-body">
+          <div class="finding-rule">{{ f.rule.replace('_',' ') }}</div>
+          <div class="finding-desc">{{ f.description }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="clean">✓ No heuristic red flags detected.</div>
+    {% endif %}
+  </div>
+  {% endif %}
+</main>
+
+<footer>
+  URLSentry — built for educational &amp; portfolio use. Not a substitute for enterprise threat intelligence.
+</footer>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Sample URLs for batch scanning demo
+https://www.python.org
+https://github.com
+http://secure-paypal-login-update.verify-account.top/webscr?cmd=confirm
+http://192.168.1.1/admin/login
+http://bit.ly/3xample
+http://paypa1.com/signin

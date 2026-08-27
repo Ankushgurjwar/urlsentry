@@ -37,7 +37,7 @@ The web UI ("URLSentry") shows a live risk gauge, verdict, and a breakdown of ev
 ## 🚀 Getting Started
 
 ```bash
-git clone https://github.com/<your-username>/urlsentry.git
+git clone https://github.com/Ankushgurjwar/urlsentry.git
 cd urlsentry
 pip install -r requirements.txt
 ```
